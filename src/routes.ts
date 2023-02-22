@@ -70,5 +70,87 @@ export async function appRoutes(app: FastifyInstance) {
         }
 
     })
+
+    app.patch('/habits/:id/toggle', async (request) => {
+
+        const toggleHabitParams = z.object({
+            id: z.string().uuid()
+        })
+
+        const { id } = toggleHabitParams.parse(request.params)
+
+        const today = dayjs().startOf('day').toDate()
+
+        let day = await prisma.day.findUnique({
+            where: {
+                date: today
+            }
+        })
+
+        if (!day) {
+            day = await prisma.day.create({
+                data: {
+                    date: today
+                }
+            })
+        }
+
+        const dayHabit = await prisma.dayHabit.findUnique({
+            where: {
+                id_day_id_habit: {
+                    id_day: day.id,
+                    id_habit: id
+                }
+            }
+        })
+
+        if (dayHabit) {
+            await prisma.dayHabit.delete({
+                where: {
+                    id: dayHabit.id
+                }
+            })
+        } else {
+            await prisma.dayHabit.create({
+                data: {
+                    id_day: day.id,
+                    id_habit: id
+                }
+            })
+        }
+
+
+
+
+    })
+
+    app.get('/summary', async () => {
+
+        const summary = await prisma.$queryRaw`
+            SELECT 
+                D.id,
+                D.date,
+                (
+                    SELECT
+                        cast(count(*) as float)
+                    FROM day_habit DH
+                    WHERE DH.id_day =  D.id
+                ) as completed,
+                (
+                    SELECT
+                        cast(count(*) as float)
+                    FROM habit_week_days HWD
+                    JOIN  habits H 
+                        ON H.id= HWD.id_habit
+                    WHERE HWD.week_day = cast(strftime('%w', D.date/1000.0, 'unixepoch') as int)
+                    AND H.created_at <= D.date
+                ) as ammount
+            FROM days D
+        `
+
+        return summary
+    })
+
+
 }
 
