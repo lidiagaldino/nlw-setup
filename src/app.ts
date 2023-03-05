@@ -1,15 +1,19 @@
 import Fastify, { FastifyInstance } from "fastify";
+import cors from "@fastify/cors";
 import { appRoutes } from "./routes";
 
 class App {
     declare fastify: FastifyInstance
 
     constructor() {
-        this.fastify = Fastify({
-            logger: true
-        })
+        this.fastify = Fastify()
 
+        this.middleware()
         this.routes()
+    }
+
+    private middleware() {
+        this.fastify.register(cors)
     }
 
     private routes() {
