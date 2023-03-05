@@ -30,7 +30,7 @@ class GetDayService {
 
         const completedHabits = day?.dayHabits.map(dayHabit => {
             return dayHabit.id_habit
-        })
+        }) ?? []
 
         return {
             possibleHabits,
